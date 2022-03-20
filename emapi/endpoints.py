@@ -1,6 +1,6 @@
 import re
 from urllib.parse import unquote, unquote_plus
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Iterable
 from json import JSONDecodeError
 from inspect import getmembers, getmro, isfunction, getdoc
 
@@ -143,7 +143,7 @@ class ApiEndpoint(HTTPEndpoint):
 		if invalid:
 			raise BaseEmapiError(400, f"Following filters are not accepted for resource: {list(invalid)}")
 
-	async def format_resources(self, resources: List[EmapiDbModel], recursive: Optional[bool] = False) -> List[dict]:
+	async def format_resources(self, resources: Iterable[EmapiDbModel], recursive: Optional[bool] = False) -> List[dict]:
 		return [await self.format_resource(resource, recursive=recursive) for resource in resources]
 
 	async def format_resource(self, resource: Union[EmapiDbModel, dict], recursive: Optional[bool] = False) -> dict:
