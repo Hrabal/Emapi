@@ -54,6 +54,8 @@ class Server(Starlette):
 		self.settings = settings
 		self.logger = log or logging.getLogger()
 		self.objects = set()
+		self.models = []
+		self.events = []
 		if self.settings.debug:
 			self.logger.setLevel(logging.DEBUG)
 		super().__init__(**kwargs)
