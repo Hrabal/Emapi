@@ -53,9 +53,7 @@ class Server(Starlette):
 	):
 		self.settings = settings
 		self.logger = log or logging.getLogger()
-		self.objects = set()
-		self.models = []
-		self.events = []
+		self.objects = {}
 		if self.settings.debug:
 			self.logger.setLevel(logging.DEBUG)
 		super().__init__(**kwargs)
@@ -106,7 +104,7 @@ class Server(Starlette):
 			else:
 				api_path = f"{base_api_path}s"
 			self.add_api_route(api_path, base, obj)
-		self.objects.add(obj)
+		self.objects.setdefault(obj.__class__.__name__, obj)
 
 	def register_event(self, base_path: str, obj: Type[Event]) -> None:
 		for base in (SingleEventEndpoint, MultiEventEndpoint)[: int(obj.Meta.multi) + 1]:
@@ -116,10 +114,10 @@ class Server(Starlette):
 			else:
 				api_path = f"{base_path}/{obj_name}s"
 			self.add_api_route(api_path, base, obj)
-		self.objects.add(obj.Meta.base_model)
-		self.objects.add(obj)
+		self.objects.setdefault(obj.Meta.base_model.__class__.__name__, obj.Meta.base_model)
+		self.objects.setdefault(obj.__class__.__name__, obj)
 		for outcome in obj.Meta.outcomes:
-			self.objects.add(outcome)
+			self.objects.setdefault(outcome.__class__.__name__, outcome)
 
 	def register_custom_endpoint(self, cls_name: str, endpoint: Type[HTTPEndpoint], base_path: str = "") -> None:
 		print(f"{base_path}/{title_to_snake(cls_name)}")

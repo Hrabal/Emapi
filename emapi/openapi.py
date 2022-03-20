@@ -21,7 +21,7 @@ class EmapiOpenApiSchema:
 
 	def build_schemas(self) -> dict:
 		ret = {}
-		for obj in self.app.objects:
+		for obj in self.app.objects.values():
 			ret.setdefault(obj.Meta.version, {})
 			ret[obj.Meta.version][obj.__name__] = self.render_obj(obj)
 		return ret
