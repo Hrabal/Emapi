@@ -232,7 +232,7 @@ class SingleEventEndpoint(EventEndpoint, SingleEndpoint):
 			data = data["data"]["attributes"]
 		data.update(request.path_params)
 		event = self.obj()
-		await event.do(**data)
+		await event.do(request, **data)
 		return JsonResponse({"data": self.format_event_outcomes(event)})
 
 	async def delete(self, request: Request) -> Response:
@@ -241,7 +241,7 @@ class SingleEventEndpoint(EventEndpoint, SingleEndpoint):
 			data = data["data"]["attributes"]
 		data.update(request.path_params)
 		event = self.obj()
-		await event.do(**data)
+		await event.do(request, **data)
 		return Response(status_code=204)
 
 
@@ -251,6 +251,6 @@ class MultiEventEndpoint(EventEndpoint, MultiEndpoint):
 		ret = []
 		for el in data["data"]:
 			event = self.obj()
-			await event.do(**el["attributes"])
+			await event.do(request, **el["attributes"])
 			ret.extend(self.format_event_outcomes(event))
 		return JsonResponse({"data": ret})

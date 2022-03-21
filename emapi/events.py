@@ -4,6 +4,8 @@ from functools import cache
 from typing import Optional, Any
 from dataclasses import dataclass, fields, _MISSING_TYPE
 
+from starlette.requests import Request
+
 from .base import ApiMember
 from .tools import get_method_signature_data, format_field
 
@@ -52,8 +54,8 @@ class Event(ApiMember):
 		self.context = context or {}
 		self.outcomes = []
 
-	async def do(self, *args, **kwarg) -> Any:
-		pass
+	async def do(self, request: Request, *args, **kwargs) -> Any:
+		raise NotImplementedError
 
 	@classmethod
 	@cache
