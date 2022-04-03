@@ -76,6 +76,8 @@ class Server(Starlette):
 		self.logger.info(f"Registering objects from {path}")
 		api, api_module_name, pkg = module_from_path(path)
 		for obj_name, obj in getmembers(api, predicate=partial(is_server_object, api.__name__)):
+			if obj.Meta.api_excluded:
+				continue
 			base_path = f"/api/v{obj.Meta.version}"
 			if obj.Meta.base_model:
 				base_name = obj.Meta.base_model.__name__.lower()

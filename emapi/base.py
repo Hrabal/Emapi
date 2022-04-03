@@ -25,6 +25,7 @@ class ApiMember:
 		abstract = False
 		base_model = None
 		multi = True
+		api_excluded = False
 		api_excluded_fields = tuple()
 		need_resource = False
 
