@@ -100,12 +100,14 @@ class Server(Starlette):
 			custom_endpoint.obj = obj
 			self.register_custom_endpoint(obj_name, custom_endpoint, base_path=base_api_path)
 		for base in (SingleModelEndpoint, MultiModelEndpoint)[: int(obj.Meta.multi) + 1]:
-
 			if base == SingleModelEndpoint:
-				api_path = f"{base_api_path}/{{{obj.describe()['pk']['name']}}}"
+				pk_field = obj.describe()['pk']
+				api_path = f"{base_api_path}"
+				if pk_field["generated"]:
+					base_api_path += f"/{{{pk_field['name']}}}"
+				self.add_api_route(api_path, base, obj)
 			else:
-				api_path = f"{base_api_path}s"
-			self.add_api_route(api_path, base, obj)
+				self.add_api_route(f"{base_api_path}s", base, obj)
 		self.objects.setdefault(obj.__class__.__name__, obj)
 
 	def register_event(self, base_path: str, obj: Type[Event]) -> None:
@@ -125,8 +127,14 @@ class Server(Starlette):
 		print(f"{base_path}/{title_to_snake(cls_name)}")
 		self.add_route(f"{base_path}/{cls_name.lower()}", endpoint)
 
-	def add_api_route(self, path: str, base_endpoint: Type[ApiEndpoint], obj: Type[Union[Event, EmapiDbModel]]) -> None:
-		attrs = {k: v for k, v in base_endpoint.__dict__.items() if k not in ApiMember.Meta.methods or k in obj.Meta.methods}
+	def add_api_route(
+			self, path: str, base_endpoint: Type[ApiEndpoint], obj: Type[Union[Event, EmapiDbModel]],
+			excluded_methods: Optional[tuple[str]] = tuple()
+	) -> None:
+		attrs = {
+			k: v for k, v in base_endpoint.__dict__.items()
+			if k not in ApiMember.Meta.methods or (k in obj.Meta.methods and k not in excluded_methods)
+		}
 		attrs.update({"obj": obj, "path": path})
 		endpoint = type(f"{obj.__name__}{base_endpoint.__name__}", base_endpoint.__bases__, attrs)
 		self.add_route(path, endpoint)
