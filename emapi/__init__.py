@@ -1,5 +1,5 @@
 from .base import Settings
 from .server import Server, http_exception
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 VERSION = tuple(map(int, __version__.split(".")))
