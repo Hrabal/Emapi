@@ -15,7 +15,7 @@ def format_field(field: dict) -> dict:
 		"default": field.get("default"),
 		"generated": field.get("generated", False)
 	}
-	for k, v in zip(("type", "format"), OPENAPI_FIELDS.get(field["field_type"], (field["field_type"],))):
+	for k, v in zip(("type", "format"), OPENAPI_FIELDS.get(field.get("field_type"), (field.get("field_type"),))):
 		field[k] = v
 	return field
 
