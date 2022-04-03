@@ -33,7 +33,7 @@ def get_method_signature_data(m: Callable) -> dict:
 			ret[arg_name] = format_field({
 				"name": arg_name,
 				"description": r.group(2).strip(),
-				"default": f.default.__name__ if not f.default == f.empty else None
+				"default": f.default.__name__ if not f.default == f.empty else None,
 				"field_type": f.annotation.__name__
 			})
 	return ret
