@@ -7,9 +7,15 @@ from .constants import OPENAPI_FIELDS
 TITLE_TO_SNAKE = re.compile(r"(?<!^)(?=[A-Z])")
 
 
-def format_field(name: str, description: str, default: str, typ: str) -> dict:
-	field = {"name": name, "description": description, "default": default}
-	for k, v in zip(("type", "format"), OPENAPI_FIELDS.get(typ, (typ,))):
+def format_field(field: dict) -> dict:
+	# name: str, description: str, default: str, typ: str
+	field = {
+		"name": field["name"],
+		"description": field.get("description", ""),
+		"default": field.get("default"),
+		"generated": field.get("generated", False)
+	}
+	for k, v in zip(("type", "format"), OPENAPI_FIELDS.get(field["field_type"], (field["field_type"],))):
 		field[k] = v
 	return field
 
@@ -24,9 +30,12 @@ def get_method_signature_data(m: Callable) -> dict:
 		if r:
 			arg_name = r.group(1)
 			f = sig.parameters[arg_name]
-			ret[arg_name] = format_field(
-				arg_name, r.group(2).strip(), f.default.__name__ if not f.default == f.empty else None, f.annotation.__name__
-			)
+			ret[arg_name] = format_field({
+				"name": arg_name,
+				"description": r.group(2).strip(),
+				"default": f.default.__name__ if not f.default == f.empty else None
+				"field_type": f.annotation.__name__
+			})
 	return ret
 
 

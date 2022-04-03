@@ -13,6 +13,9 @@ class EmapiDbModel(models.Model, ApiMember):
 	Model
 	"""
 
+	class Meta(ApiMember.Meta):
+		abstract = True
+
 	@classmethod
 	@cache
 	def describe(cls) -> dict:
@@ -21,12 +24,7 @@ class EmapiDbModel(models.Model, ApiMember):
 			"name": f"{cls.__module__}.{cls.__name__}",
 			"description": getdoc(cls),
 			"type": "model",
-			"pk": format_field(
-				data["pk_field"]["name"],
-				data["pk_field"]["description"],
-				data["pk_field"]["default"],
-				data["pk_field"]["field_type"],
-			),
+			"pk": format_field(data["pk_field"]),
 			"properties": {},
 			"filters": {},
 			"relationships": {},
@@ -34,7 +32,7 @@ class EmapiDbModel(models.Model, ApiMember):
 		for f in data["data_fields"]:
 			if f["name"] in cls.Meta.api_excluded_fields:
 				continue
-			api_field = format_field(f["name"], f["description"], f["default"], f["field_type"],)
+			api_field = format_field(f)
 			ret["properties"][f["name"]] = api_field
 			if f["indexed"]:
 				ret["filters"][f["name"]] = api_field
@@ -45,9 +43,6 @@ class EmapiDbModel(models.Model, ApiMember):
 				rel_data = ret
 			ret["relationships"][f] = rel_data
 		return ret
-
-	class Meta(ApiMember.Meta):
-		abstract = True
 
 	async def get_relationships(self) -> dict:
 		if not self._meta.fetch_fields:
