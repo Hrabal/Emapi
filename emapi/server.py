@@ -101,7 +101,7 @@ class Server(Starlette):
 			self.register_custom_endpoint(obj_name, custom_endpoint, base_path=base_api_path)
 		for base in (SingleModelEndpoint, MultiModelEndpoint)[: int(obj.Meta.multi) + 1]:
 			if base == SingleModelEndpoint:
-				pk_field = obj.describe()['pk']
+				pk_field = obj.describe()["pk"]
 				api_path = f"{base_api_path}"
 				if pk_field["generated"]:
 					base_api_path += f"/{{{pk_field['name']}}}"
@@ -128,11 +128,15 @@ class Server(Starlette):
 		self.add_route(f"{base_path}/{cls_name.lower()}", endpoint)
 
 	def add_api_route(
-			self, path: str, base_endpoint: Type[ApiEndpoint], obj: Type[Union[Event, EmapiDbModel]],
-			excluded_methods: Optional[tuple[str]] = tuple()
+		self,
+		path: str,
+		base_endpoint: Type[ApiEndpoint],
+		obj: Type[Union[Event, EmapiDbModel]],
+		excluded_methods: Optional[tuple[str]] = tuple(),
 	) -> None:
 		attrs = {
-			k: v for k, v in base_endpoint.__dict__.items()
+			k: v
+			for k, v in base_endpoint.__dict__.items()
 			if k not in ApiMember.Meta.methods or (k in obj.Meta.methods and k not in excluded_methods)
 		}
 		attrs.update({"obj": obj, "path": path})

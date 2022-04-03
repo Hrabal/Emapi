@@ -27,18 +27,16 @@ class Outcome:
 			"name": f"{cls.__module__}.{cls.__name__}",
 			"type": "event",
 			"description": getdoc(cls),
-			"pk": format_field({
-				"name": "id",
-				"description": f"{cls.__name__} unique identifier",
-				"field_type": "str"
-			}),
+			"pk": format_field({"name": "id", "description": f"{cls.__name__} unique identifier", "field_type": "str"}),
 			"properties": {
-				field.name: format_field({
-					"name": field.name,
-					"description": "",
-					"default": field.default if not isinstance(field.default, _MISSING_TYPE) else "",
-					"field_type": field.type
-				})
+				field.name: format_field(
+					{
+						"name": field.name,
+						"description": "",
+						"default": field.default if not isinstance(field.default, _MISSING_TYPE) else "",
+						"field_type": field.type,
+					}
+				)
 				for field in fields(cls)
 				if field.name != "id"
 			},
