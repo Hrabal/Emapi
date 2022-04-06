@@ -103,9 +103,12 @@ class Server(Starlette):
 			if base == SingleModelEndpoint:
 				pk_field = obj.describe()["pk"]
 				api_path = f"{base_api_path}"
-				if pk_field["generated"]:
-					base_api_path += f"/{{{pk_field['name']}}}"
-				self.add_api_route(api_path, base, obj)
+				excluded_methods = []
+				if pk_field["generated"] or pk_field["default"]:
+					excluded_methods.append("post")
+					self.add_api_route(api_path, base, obj, excluded_methods=tuple(set(obj.Meta.methods) - {"post"}))
+				api_path += f"/{{{pk_field['name']}}}"
+				self.add_api_route(api_path, base, obj, excluded_methods=tuple(excluded_methods))
 			else:
 				self.add_api_route(f"{base_api_path}s", base, obj)
 		self.objects.setdefault(obj.__class__.__name__, obj)
@@ -124,7 +127,6 @@ class Server(Starlette):
 			self.objects.setdefault(outcome.__class__.__name__, outcome)
 
 	def register_custom_endpoint(self, cls_name: str, endpoint: Type[HTTPEndpoint], base_path: str = "") -> None:
-		print(f"{base_path}/{title_to_snake(cls_name)}")
 		self.add_route(f"{base_path}/{cls_name.lower()}", endpoint)
 
 	def add_api_route(
