@@ -95,32 +95,32 @@ class Server(Starlette):
 
 	def register_model(self, base_path: str, obj: Type[EmapiDbModel]) -> None:
 		obj_name = obj.__name__.lower()
-		base_api_path = f"{base_path}/{obj_name}"
+		api_path = f"{base_path}/{obj_name}"
+
 		for obj_name, custom_endpoint in getmembers(obj, predicate=partial(is_server_object, obj.__module__)):
 			custom_endpoint.obj = obj
-			self.register_custom_endpoint(obj_name, custom_endpoint, base_path=base_api_path)
-		for base in (SingleModelEndpoint, MultiModelEndpoint)[: int(obj.Meta.multi) + 1]:
-			if base == SingleModelEndpoint:
-				pk_field = obj.describe()["pk"]
-				api_path = f"{base_api_path}"
-				excluded_methods = []
-				if pk_field["generated"] or pk_field["default"]:
-					excluded_methods.append("post")
-					self.add_api_route(api_path, base, obj, excluded_methods=tuple(set(obj.Meta.methods) - {"post"}))
-				api_path += f"/{{{pk_field['name']}}}"
-				self.add_api_route(api_path, base, obj, excluded_methods=tuple(excluded_methods))
-			else:
-				self.add_api_route(f"{base_api_path}s", base, obj)
+			self.register_custom_endpoint(obj_name, custom_endpoint, base_path=f"{api_path}s")
+
+		if obj.Meta.multi:
+			self.add_api_route(f"{api_path}s", MultiModelEndpoint, obj, excluded_methods=("put",) if obj.generated_id else None)
+
+		if obj.generated_id:
+			self.add_api_route(api_path, SingleModelEndpoint, obj, excluded_methods=tuple(set(obj.Meta.methods) - {"post"}))
+
+		api_path += f"/{{{obj.pk_field['name']}}}"
+		self.add_api_route(api_path, SingleModelEndpoint, obj, excluded_methods=("post", "put") if obj.generated_id else None)
+
 		self.objects.setdefault(obj.__class__.__name__, obj)
 
 	def register_event(self, base_path: str, obj: Type[Event]) -> None:
-		for base in (SingleEventEndpoint, MultiEventEndpoint)[: int(obj.Meta.multi) + 1]:
-			obj_name = obj.__name__.lower()
-			if base == SingleEventEndpoint:
-				api_path = f"{base_path}/{obj_name}"
-			else:
-				api_path = f"{base_path}/{obj_name}s"
-			self.add_api_route(api_path, base, obj)
+		obj_name = obj.__name__.lower()
+		api_path = f"{base_path}/{obj_name}"
+
+		if obj.Meta.multi:
+			self.add_api_route(f"{api_path}s", MultiEventEndpoint, obj)
+
+		self.add_api_route(api_path, SingleEventEndpoint, obj)
+
 		self.objects.setdefault(obj.Meta.base_model.__class__.__name__, obj.Meta.base_model)
 		self.objects.setdefault(obj.__class__.__name__, obj)
 		for outcome in obj.Meta.outcomes:
