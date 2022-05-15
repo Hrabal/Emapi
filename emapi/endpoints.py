@@ -158,7 +158,7 @@ class ApiEndpoint(HTTPEndpoint):
 
 
 class ModelEndpoint(ApiEndpoint):
-	def get_instance(self, data: dict, raise_not_found: bool = False) -> EmapiDbModel:
+	async def get_instance(self, data: dict, raise_not_found: bool = False) -> EmapiDbModel:
 		instance = await self.obj.get_or_none(id=data["id"])
 		if not instance and raise_not_found:
 			raise ModelNotFound
@@ -199,21 +199,21 @@ class SingleModelEndpoint(ModelEndpoint, SingleEndpoint):
 
 	async def put(self, request: Request) -> Response:
 		data = await self.get_json(request, ignore_erros=False)
-		instance = self.get_instance(data)
+		instance = await self.get_instance(data)
 		instance.update_from_dict(data["attributes"])
 		await instance.save()
 		return JsonResponse({"data": self.format_model(instance)})
 
 	async def patch(self, request: Request) -> Response:
 		data = await self.get_json(request, ignore_erros=False)
-		instance = self.get_instance(data, raise_not_found=True)
+		instance = await self.get_instance(data, raise_not_found=True)
 		instance.update_from_dict(data["attributes"])
 		await instance.save()
 		return JsonResponse({"data": self.format_model(instance)})
 
 	async def delete(self, request: Request) -> Response:
 		data = await self.get_json(request, ignore_erros=False)
-		instance = self.get_instance(data, raise_not_found=True)
+		instance = await self.get_instance(data, raise_not_found=True)
 		await instance.delete()
 		return Response(status_code=204)
 
