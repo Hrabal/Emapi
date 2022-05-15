@@ -17,6 +17,17 @@ class EmapiDbModel(models.Model, ApiMember):
 		abstract = True
 
 	@classmethod
+	@property
+	def pk_field(cls) -> dict:
+		return cls.describe()["pk"]
+
+	@classmethod
+	@property
+	def generated_id(cls) -> bool:
+		pk_field = cls.describe()["pk"]
+		return pk_field["generated"] or pk_field["default"]
+
+	@classmethod
 	@cache
 	def describe(cls) -> dict:
 		data = super().describe()
@@ -78,6 +89,12 @@ class EmapiDbModel(models.Model, ApiMember):
 	def make(cls, data: dict) -> "EmapiDbModel":
 		data.setdefault(cls._meta.pk_attr, cls.make_id)
 		return cls(**{k: v for k, v in data.items() if k not in cls._meta.m2m_fields})
+
+	@classmethod
+	def from_jsonapi(cls, data: dict) -> "EmapiDbModel":
+		if not cls.generated_id:
+			data["attributes"][cls._meta.pk_attr] = data["id"]
+		return cls.make(data["attributes"])
 
 	def __str__(self):
 		try:
