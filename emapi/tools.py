@@ -13,7 +13,7 @@ def format_field(field: dict) -> dict:
 		"name": field["name"],
 		"description": field.get("description", ""),
 		"default": field.get("default"),
-		"generated": field.get("generated", False)
+		"generated": field.get("generated", False),
 	}
 	for k, v in zip(("type", "format"), OPENAPI_FIELDS.get(field.get("field_type"), (field.get("field_type"),))):
 		field[k] = v
@@ -30,12 +30,14 @@ def get_method_signature_data(m: Callable) -> dict:
 		if r:
 			arg_name = r.group(1)
 			f = sig.parameters[arg_name]
-			ret[arg_name] = format_field({
-				"name": arg_name,
-				"description": r.group(2).strip(),
-				"default": f.default.__name__ if not f.default == f.empty else None,
-				"field_type": f.annotation.__name__
-			})
+			ret[arg_name] = format_field(
+				{
+					"name": arg_name,
+					"description": r.group(2).strip(),
+					"default": f.default.__name__ if not f.default == f.empty else None,
+					"field_type": f.annotation.__name__,
+				}
+			)
 	return ret
 
 
