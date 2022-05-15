@@ -1,4 +1,5 @@
 import re
+from operator import itemgetter
 from urllib.parse import unquote, unquote_plus
 from typing import List, Optional, Union, Iterable
 from json import JSONDecodeError
@@ -14,7 +15,7 @@ from .events import Event, Outcome
 from .responses import JsonResponse
 from .models import EmapiDbModel
 from .exceptions.base import BaseEmapiError
-from .exceptions.models import ModelConflict
+from .exceptions.models import ModelConflict, ModelNotFound
 
 
 EXCLUDED_MODEL_INFO = ("app", "table", "python_type", "db_column", "db_field_types", "abstract", "docstring")
@@ -157,7 +158,11 @@ class ApiEndpoint(HTTPEndpoint):
 
 
 class ModelEndpoint(ApiEndpoint):
-	pass
+	def get_instance(self, data: dict, raise_not_found: bool = False) -> EmapiDbModel:
+		instance = await self.obj.get_or_none(id=data["id"])
+		if not instance and raise_not_found:
+			raise ModelNotFound
+		return instance or self.obj.from_jsonapi(data)
 
 
 class EventEndpoint(ApiEndpoint):
@@ -187,15 +192,29 @@ class SingleModelEndpoint(ModelEndpoint, SingleEndpoint):
 		return JsonResponse({"data": await self.format_resource(res)})
 
 	async def post(self, request: Request) -> Response:
-		return JsonResponse({"status": "OK"})
+		data = await self.get_json(request, ignore_erros=False)
+		instance = self.obj.from_jsonapi(data)
+		await instance.save()
+		return JsonResponse({"data": self.format_model(instance)})
 
 	async def put(self, request: Request) -> Response:
-		return JsonResponse({"status": "OK"})
+		data = await self.get_json(request, ignore_erros=False)
+		instance = self.get_instance(data)
+		instance.update_from_dict(data["attributes"])
+		await instance.save()
+		return JsonResponse({"data": self.format_model(instance)})
 
 	async def patch(self, request: Request) -> Response:
-		return JsonResponse({"status": "OK"})
+		data = await self.get_json(request, ignore_erros=False)
+		instance = self.get_instance(data, raise_not_found=True)
+		instance.update_from_dict(data["attributes"])
+		await instance.save()
+		return JsonResponse({"data": self.format_model(instance)})
 
 	async def delete(self, request: Request) -> Response:
+		data = await self.get_json(request, ignore_erros=False)
+		instance = self.get_instance(data, raise_not_found=True)
+		await instance.delete()
 		return Response(status_code=204)
 
 
@@ -208,7 +227,7 @@ class MultiModelEndpoint(ModelEndpoint, MultiEndpoint):
 
 	async def post(self, request: Request) -> Response:
 		data = await self.get_json(request, ignore_erros=False)
-		resources = [self.obj(**el["attributes"]) for el in data["data"]]
+		resources = list(map(self.obj.from_jsonapi, data["data"]))
 		try:
 			await self.obj.bulk_create(resources)
 		except IntegrityError as ex:
@@ -219,9 +238,24 @@ class MultiModelEndpoint(ModelEndpoint, MultiEndpoint):
 		return JsonResponse({"status": "OK"})
 
 	async def patch(self, request: Request) -> Response:
-		return JsonResponse({"status": "OK"})
+		data = await self.get_json(request, ignore_erros=False)
+		ids = []
+		res = {}
+		for el in data["data"]:
+			ids.append(el["id"])
+			res[el["id"]] = el
+
+		resources = await self.obj.filter(**{f"{self.obj._meta.pk_attr}__in": ids}).all()
+		for instance in resources:
+			instance.update_from_dict(res[getattr(instance, self.obj._meta.pk_attr)])
+
+		await self.obj.bulk_update(resources, fields=self.obj._meta.fields_map.keys(), batch_size=100)
+
+		return JsonResponse({"data": [self.format_model(r) for r in resources]})
 
 	async def delete(self, request: Request) -> Response:
+		data = await self.get_json(request, ignore_erros=False)
+		self.obj.filter(**{f"{self.obj_meta_meta.pk_attr}__in": map(itemgetter("id"), data["data"])}).delete()
 		return Response(status_code=204)
 
 
