@@ -102,13 +102,13 @@ class Server(Starlette):
 			self.register_custom_endpoint(obj_name, custom_endpoint, base_path=f"{api_path}s")
 
 		if obj.Meta.multi:
-			self.add_api_route(f"{api_path}s", MultiModelEndpoint, obj, excluded_methods=("put",) if obj.generated_id else None)
+			self.add_api_route(f"{api_path}s", MultiModelEndpoint, obj, excluded_methods=("put",) if obj.generated_id else tuple())
 
 		if obj.generated_id:
 			self.add_api_route(api_path, SingleModelEndpoint, obj, excluded_methods=tuple(set(obj.Meta.methods) - {"post"}))
 
 		api_path += f"/{{{obj.pk_field['name']}}}"
-		self.add_api_route(api_path, SingleModelEndpoint, obj, excluded_methods=("post", "put") if obj.generated_id else None)
+		self.add_api_route(api_path, SingleModelEndpoint, obj, excluded_methods=("post", "put") if obj.generated_id else tuple())
 
 		self.objects.setdefault(obj.__class__.__name__, obj)
 
